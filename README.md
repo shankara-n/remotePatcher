@@ -1,10 +1,24 @@
 # remotePatcher
 
-<Brief desc of repo>
+### Description
 
-<working of code from the perspective of user >
+Repository of code for remotely updating and applying patches to scripts on remote systems. The scripts read inputs from the csv files in the input folder.
 
-<what he'll enter into the csv, what he inputs, layman terms>
+### Initialisation
+
+Ensure you have pip. Then run:
+
+```
+python3 -m pip install -r requirements.txt
+```
+
+### Working
+
+TBC
+
+### <what he'll enter into the csv, what he inputs, layman terms>
+
+TBC
 
 
 
