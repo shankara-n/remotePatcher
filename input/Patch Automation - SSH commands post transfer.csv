@@ -1,0 +1,3 @@
+tar -xvf /home/pi/patch.tar.gz /home/pi/patch,Extracted 
+sudo chmod +x /home/pi/patch.sh,
+./home/pi/patch.sh,
