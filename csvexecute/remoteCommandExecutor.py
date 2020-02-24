@@ -40,22 +40,26 @@ ssh_client = paramiko.SSHClient()
 try:
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh_client.connect(hostname='local', username='reaper', password='password')
-    print(precommand)
-    exec = multiprocessing.Process(target=remoteCommandExecutor, name="command execution", args=(ssh_client, precommand))
-    exec.start()
+
     
-    for i in range(MAX_WAIT_SECS):
-        time.sleep(1)
-        print(i)
-        print(exec.is_alive)
-        if commandfinish.is_set():
-            break
+    for command in precommands:
+        print(command)
+        exec = multiprocessing.Process(target=remoteCommandExecutor, name="command execution", args=(ssh_client, command))
+        exec.start()
         
-    if not commandfinish.is_set():
-        print("Process still running after timeout. stopping...")
-        exec.terminate()
-    else:
-        print("Display results of process...")
+        for i in range(MAX_WAIT_SECS):
+            time.sleep(1)
+            print("time is {}".format(i))
+            print(exec.is_alive)
+            if commandfinish.is_set():
+                break
+            
+        if not commandfinish.is_set():
+            print("Process still running after timeout. stopping...")
+            exec.terminate()
+        else:
+            print("Display results of process...")
+        commandfinish.clear()
         
 except Exception as e:
     print(e)
