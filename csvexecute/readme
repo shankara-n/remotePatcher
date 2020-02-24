@@ -1,1 +1,0 @@
-Py script to read commands from a file, and execute on remote computer.
