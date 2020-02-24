@@ -2,6 +2,20 @@ MAX_WAIT_SECS = 6
 import paramiko
 import csv
 import time
+import multiprocessing
+import threading
+
+commandfinish = multiprocessing.Event()
+
+def remoteCommandExecutor(ssh_client, command):
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh_client.connect(hostname='local', username='reaper', password='password')
+    stdin, stdout, stderr = ssh_client.exec_command(command)
+    commandfinish.set()
+    time.sleep(2)
+    print(stdout.readlines())
+    print(stderr.readlines())
+    return (stdin, stdout, stderr)
 
 precommands = []
 precommand = '; '
@@ -12,31 +26,36 @@ for row in contents:
 filepointer.close()
 precommand = precommand.join(precommands)
 
-postcommands = []
-postcommand = '; '
-filepointer = open('Patch Automation - SSH commands post transfer.csv', 'r')
-contents = csv.reader(filepointer)
-for row in contents:
-    postcommands.append(row[0])
-filepointer.close()
-postcommand = postcommand.join(postcommands)
+# postcommands = []
+# postcommand = '; '
+# filepointer = open('Patch Automation - SSH commands post transfer.csv', 'r')
+# contents = csv.reader(filepointer)
+# for row in contents:
+#     postcommands.append(row[0])
+# filepointer.close()
+# postcommand = postcommand.join(postcommands)
 
 ssh_client = paramiko.SSHClient()
 
 try:
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh_client.connect(hostname='10.53.78.48', username='reaper', password='password')
+    ssh_client.connect(hostname='local', username='reaper', password='password')
     print(precommand)
-    stdin, stdout, stderr = ssh_client.exec_command(precommand)
-    time.sleep(MAX_WAIT_SECS)
-    if stdout.channel.recv_ready():
-        print("Command executed without errors, printing output log")
-        print(stdout.readlines())
-    elif stderr.channel.recv_ready() is True:
-        print("An error has occured\nExiting...")
-        print(stderr.readlines())
+    exec = multiprocessing.Process(target=remoteCommandExecutor, name="command execution", args=(ssh_client, precommand))
+    exec.start()
+    
+    for i in range(MAX_WAIT_SECS):
+        time.sleep(1)
+        print(i)
+        print(exec.is_alive)
+        if commandfinish.is_set():
+            break
+        
+    if not commandfinish.is_set():
+        print("Process still running after timeout. stopping...")
+        exec.terminate()
     else:
-        print("The process could not be completed in time.")
+        print("Display results of process...")
         
 except Exception as e:
     print(e)
