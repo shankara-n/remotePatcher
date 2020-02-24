@@ -9,5 +9,10 @@ The commands are executed serially, but DO NOT MAINTAIN FILE SCOPE. eg,
 
 Each commmand is executed in a virtual shell on the target pc, and then the virtual shell returns to the root of the pc.
 
+The login details are hardcoded. 
+
+##To-do
+
+- [ ] Remove the precommand postcommand feature
 
 
