@@ -195,7 +195,10 @@ def main():
 
     for ip in goodIPlist:
         HOSTNAME = ip
-        # print(HOSTNAME)
+
+        # Execute all the commands in pre transfer
+        remoteCommandExecutor("../input/Patch Automation - SSH commands pre transfer.csv")
+
 
 
 
@@ -205,4 +208,5 @@ def main():
         print(badIPlist)
 
 if __name__ == "__main__":
-    main()
+    remoteCommandExecutor("../input/Patch Automation - SSH commands pre transfer.csv")
+    # main()
