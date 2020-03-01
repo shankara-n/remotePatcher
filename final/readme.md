@@ -14,6 +14,4 @@ Ensure diagnostic.py is in script folder
 
 - [ ] Ping command keeps flooding the terminal with output, find a quieter version
 
-- [ ] Somebody please collaborate this is really draining
-
 - [ ] Not done yet
