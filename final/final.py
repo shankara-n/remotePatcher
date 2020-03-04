@@ -1,5 +1,7 @@
-# for path.exists()
+# for path.exists(), os.access() and os.W_OK()
 from os import path
+from os import access
+from os import W_OK
 
 # for handling csv files
 import csv
@@ -49,14 +51,22 @@ def readpaths(file):
 def checkfromexists(frompath):
     """Serially checks each path in frompath, returns True iff all files exist."""
     for file in frompath:
-        if not path.exists(file):
+        if not path.isfile(file):
             return False
     return True
 
 # VERIFYING DESTINATION FOLDER EXISTS
 def checktoexists(topath):
-    """Intended to check if the directory of topath exists, needs discussion"""
-    pass
+    """Intended to check if the directory of topath exists and needs discussion"""
+    for file in topath:
+        directory = file.split('/')
+        directory.pop()
+        directory='/'.join(directory)
+        if not path.exists(directory):
+            if not access(directory, W_OK):
+                print('No write access to', directory)
+                return False
+    return True
 
 # PINGING
 def ping(host):
@@ -67,7 +77,7 @@ def ping(host):
     # Option for the number of packets as a function of
     param = '-n' if platform.system().lower()=='windows' else '-c'
     # Building the command. Ex: "ping -c 1 google.com"
-    command = ['ping', param, '1', host]
+    command = ['ping', param, '1', '-W 100',  '-Q', host]
     return subprocess.call(command) == 0
 
 # CHECK IP ADDRESS
@@ -96,6 +106,10 @@ def checkIPAddress(ipaddr):
             else:
                 goodIPlist.append(row[0])
     
+    #checking if the file is empty
+    if(line_count==0 or 1):
+        print("File is empty.")
+
     return goodIPlist, badIPlist
 
 # Global event for executing command
