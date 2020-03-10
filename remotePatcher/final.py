@@ -18,9 +18,9 @@ import multiprocessing
 import paramiko
 
 # GLOBAL VARIABLES
-HOSTNAME = 'local'
-USERNAME = 'reaper'
-PASSWORD = 'password'
+HOSTNAME = 'proxy71.rt3.io'
+USERNAME = 'pi'
+PASSWORD = 'sunshine'
 
 
 # filepointer = open('Patch Automation - FTP.csv', 'r')
@@ -58,6 +58,7 @@ def checkfromexists(frompath):
 # VERIFYING DESTINATION FOLDER EXISTS
 def checktoexists(topath):
     """Intended to check if the directory of topath exists and needs discussion"""
+    flag=0
     for file in topath:
         directory = file.split('/')
         directory.pop()
@@ -65,7 +66,9 @@ def checktoexists(topath):
         if not path.exists(directory):
             if not access(directory, W_OK):
                 print('No write access to', directory)
-                return False
+                flag=1
+    if(flag==1):
+        return False
     return True
 
 # PINGING
@@ -76,8 +79,9 @@ def ping(host):
     """
     # Option for the number of packets as a function of
     param = '-n' if platform.system().lower()=='windows' else '-c'
+    waitParam = '-w' if platform.system().lower()=='windows' else '-W'
     # Building the command. Ex: "ping -c 1 google.com"
-    command = ['ping', param, '1', '-W 100',  '-Q', host]
+    command = ['ping', param, '1', waitParam, '100', '-Q', host]
     return subprocess.call(command) == 0
 
 # CHECK IP ADDRESS
@@ -105,9 +109,9 @@ def checkIPAddress(ipaddr):
                 badIPlist.append(row[0])
             else:
                 goodIPlist.append(row[0])
-    
+        line_count+=1
     #checking if the file is empty
-    if(line_count==0 or 1):
+    if(line_count==0 or line_count==1):
         print("File is empty.")
 
     return goodIPlist, badIPlist
@@ -153,7 +157,8 @@ def remoteCommandExecutor(file):
 
     try:
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh_client.connect(hostname='local', username='reaper', password='password')
+        # ssh_client.connect(hostname='local', username='reaper', password='password')
+        ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD, port=38113)
 
         
         for (command, time) in zip(commands, waittime):
@@ -192,7 +197,11 @@ def checkcsv(listofpaths):
 def main():
     print("Starting...")
     source, dest = readpaths("../input/Patch Automation - FTP.csv")
-    if checkfromexists(source):
+
+    allFilesExist = checkfromexists(source)
+    writeAccess = checktoexists(dest)
+
+    if allFilesExist:
         print("All source files present")
     else:
         print("Some source files missing")
@@ -202,7 +211,7 @@ def main():
     global HOSTNAME
     global USERNAME
     global PASSWORD
-
+    
     if not goodIPlist:
         print("No IP addresses were succesfully verified\nFATAL ERROR")
         exit()
@@ -214,13 +223,10 @@ def main():
         remoteCommandExecutor("../input/Patch Automation - SSH commands pre transfer.csv")
 
 
-
-
-
     if badIPlist:
         print("Errors accessing some IP addresses:")
         print(badIPlist)
 
 if __name__ == "__main__":
-    remoteCommandExecutor("../input/Patch Automation - SSH commands pre transfer.csv")
-    # main()
+    #remoteCommandExecutor("../input/Patch Automation - SSH commands pre transfer.csv")
+    main()
