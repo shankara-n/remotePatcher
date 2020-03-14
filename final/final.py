@@ -18,9 +18,9 @@ import multiprocessing
 import paramiko
 
 # GLOBAL VARIABLES
-HOSTNAME = 'local'
-USERNAME = 'reaper'
-PASSWORD = 'password'
+HOSTNAME = '192.168.43.112'
+USERNAME = 'pi'
+PASSWORD = 'sunshine'
 
 
 # filepointer = open('Patch Automation - FTP.csv', 'r')
@@ -45,6 +45,17 @@ def readpaths(file):
     # print(frompath)
     # print(topath)
     return frompath, topath
+
+
+def filesToSend(file):
+    src=[]
+    dest=[]
+    filepointer = open(file, 'r')
+    contents = csv.reader(filepointer)
+    for row in contents:
+        src.append(row[0])
+        dest.append(row[1])
+    return src, dest
 
 
 # VERIFYING SOURCE FILES EXISTS
@@ -125,7 +136,7 @@ def execute(ssh_client, command):
     ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD)
     stdin, stdout, stderr = ssh_client.exec_command(command)
     commandfinish.set()
-    time.sleep(2)
+    # time.sleep(2)
     print("OUTPUT")
     print(stdout.readlines())
     print("ERROR LOG")
@@ -140,6 +151,10 @@ def remoteCommandExecutor(file):
     commands = []
     waittime = []
 
+    global HOSTNAME
+    global USERNAME
+    global PASSWORD
+
     filepointer = open(file, 'r')
     contents = csv.reader(filepointer)
 
@@ -153,15 +168,15 @@ def remoteCommandExecutor(file):
 
     try:
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh_client.connect(hostname='local', username='reaper', password='password')
+        ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD)
 
         
-        for (command, time) in zip(commands, waittime):
+        for (command, wtime) in zip(commands, waittime):
             print(command)
             exec = multiprocessing.Process(target=execute, name="command execution", args=(ssh_client, command))
             exec.start()
             
-            for i in range(time):
+            for i in range(wtime):
                 time.sleep(1)
                 print("time is {}".format(i))
                 print(exec.is_alive)
@@ -192,35 +207,50 @@ def checkcsv(listofpaths):
 def main():
     print("Starting...")
     source, dest = readpaths("../input/Patch Automation - FTP.csv")
-    if checkfromexists(source):
-        print("All source files present")
-    else:
-        print("Some source files missing")
+    # if checkfromexists(source):
+    #     print("All source files present")
+    # else:
+    #     print("Some source files missing")
 
-    goodIPlist, badIPlist = checkIPAddress("../input/Patch Automation - IPs CSV.csv")
+    # goodIPlist, badIPlist = checkIPAddress("../input/Patch Automation - IPs CSV.csv")
     
     global HOSTNAME
     global USERNAME
     global PASSWORD
 
-    if not goodIPlist:
-        print("No IP addresses were succesfully verified\nFATAL ERROR")
-        exit()
+    # if not goodIPlist:
+    #     print("No IP addresses were succesfully verified\nFATAL ERROR")
+    #     exit()
+
+    goodIPlist = [HOSTNAME]
 
     for ip in goodIPlist:
         HOSTNAME = ip
 
         # Execute all the commands in pre transfer
         remoteCommandExecutor("../input/Patch Automation - SSH commands pre transfer.csv")
+        # print("pass")
+        ssh_client =paramiko.SSHClient()
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD)
+        # print("Hello")
+        ftp_client = ssh_client.open_sftp()
+
+        src, dest = filesToSend("../input/Patch Automation - FTP.csv")
+        
+        for (file1, file2) in zip(src, dest):
+            ftp_client.put(file1, file2)
+        
+        print("Transfer complete")
+
+        # ftp_client.get("jack", "back")
+
+        # print("Transfer complete")
+        ftp_client.close()
+        remoteCommandExecutor("../input/Patch Automation - SSH commands post transfer.csv")
 
 
-
-
-
-    if badIPlist:
-        print("Errors accessing some IP addresses:")
-        print(badIPlist)
 
 if __name__ == "__main__":
-    remoteCommandExecutor("../input/Patch Automation - SSH commands pre transfer.csv")
-    # main()
+    # remoteCommandExecutor("../input/Patch Automation - SSH commands pre transfer.csv")
+    main()
