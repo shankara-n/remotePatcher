@@ -1,52 +1,24 @@
-import csv
-import platform
-import subprocess
-import os
+import paramiko
+HOSTNAME = '192.168.43.112'
+USERNAME = 'pi'
+PASSWORD = 'sunshine'
+def execute(command):
+    ssh_client = paramiko.SSHClient()
 
-def ping(host):
-    """
-    Returns True if host (str) responds to a ping request.
-    Remember that a host may not respond to a ping (ICMP) request even if the host name is valid.
-    """
-    # Option for the number of packets as a function of
-    param = '-n' if platform.system().lower()=='windows' else '-c'
-    # Building the command. Ex: "ping -c 1 google.com -q"
-    command = ['ping', param, '1', '-W 100',  '-Q', host]
-    return subprocess.call(command) == 0
+    try:
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD)
+        print("Connection succesful, executing now")
+        stdin,stdout,stderr=ssh_client.exec_command(command)
+        print(stdout.readlines())
+        print(stderr.readlines())
+        
+        
+    except Exception as e:
+        print(e)
+        print("Exiting...")
 
-file_name="../input/Patch Automation - IPs CSV.csv"
-
-#checking if the file exists and was opened properly
-try:
-    csv_file=open(file_name, mode='r')
-except IOError:
-    print('File does not exist')
-    exit()
-
-
-
-goodIPlist=[]
-badIPlist=[]
-csv_reader = csv.reader(csv_file, delimiter=',')
-line_count = 0
-
-for row in csv_reader:
-    if line_count==0:
-        line_count+=1
-        continue
-    else:
-        if not row:
-            continue
-        connectionStatus = ping(row[0])
-        if(connectionStatus==False):
-            badIPlist.append(row[0])
-        else:
-            goodIPlist.append(row[0])
-
-#checking if the file is empty
-if(line_count==0 or 1):
-    print("File is empty.") 
-    exit()
-
-print('Good IP list:', goodIPlist)
-print('Bad IP list:', badIPlist)
+for i in range(6):
+    print("Enter command")
+    command = input()
+    execute(command)

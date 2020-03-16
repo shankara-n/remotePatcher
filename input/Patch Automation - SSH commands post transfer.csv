@@ -1,6 +1,4 @@
-tar -xvf diagnostic.tar.xz, 3
-sudo chmod +x diagnostic/diagnostics.py, 3
-./home/pi/patch.sh, 3
-ls, 3
-sudo systemctl start diagnostics, 6
-sudo systemctl status diagnostics, 6
+ls,99
+tar -xvf diagnostics.tar.xz; cd diagnostics; ls, 99
+sudo unzip diagnostic.zip, 99
+ls, 99
