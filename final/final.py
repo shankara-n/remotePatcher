@@ -172,23 +172,32 @@ def remoteCommandExecutor(file):
 
         
         for (command, wtime) in zip(commands, waittime):
+            print("====================")
             print(command)
-            exec = multiprocessing.Process(target=execute, name="command execution", args=(ssh_client, command))
-            exec.start()
-            
-            for i in range(wtime):
-                time.sleep(1)
-                print("time is {}".format(i))
-                print(exec.is_alive)
-                if commandfinish.is_set():
-                    break
-                
-            if not commandfinish.is_set():
-                print("Process still running after timeout. stopping...")
-                exec.terminate()
+
+            if(wtime == 0):
+                stdin,stdout,stderr=ssh_client.exec_command(command)
+                print("Output")
+                print(stdout.readlines())
+                print("Errors")
+                print(stderr.readlines())
             else:
-                print("Display results of process...")
-            commandfinish.clear()
+                exec = multiprocessing.Process(target=execute, name="command execution", args=(ssh_client, command))
+                exec.start()
+                
+                for i in range(wtime):
+                    time.sleep(1)
+                    print("time is {}".format(i))
+                    print(exec.is_alive)
+                    if commandfinish.is_set():
+                        break
+                    
+                if not commandfinish.is_set():
+                    print("Process still running after timeout. stopping...")
+                    exec.terminate()
+                else:
+                    print("Display results of process...")
+                commandfinish.clear()
             
     except Exception as e:
         print(e)
@@ -229,15 +238,14 @@ def main():
 
         # Execute all the commands in pre transfer
         remoteCommandExecutor("../input/Patch Automation - SSH commands pre transfer.csv")
-        # print("pass")
+
         ssh_client =paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD)
-        # print("Hello")
         ftp_client = ssh_client.open_sftp()
 
         src, dest = filesToSend("../input/Patch Automation - FTP.csv")
-        
+        print("Starting transfer...")
         for (file1, file2) in zip(src, dest):
             ftp_client.put(file1, file2)
         

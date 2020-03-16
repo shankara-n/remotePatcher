@@ -46,24 +46,34 @@ def remoteCommandExecutor():
         print("Connected. Enter input and wait time")
         command = input()
         wtime = int(input())
-    
+
         print(command)
-        exec = multiprocessing.Process(target=execute, name="command execution", args=(ssh_client, command))
-        exec.start()
-        
-        for i in range(wtime):
-            time.sleep(1)
-            print("time is {}".format(i))
-            print(exec.is_alive)
-            if commandfinish.is_set():
-                break
-            
-        if not commandfinish.is_set():
-            print("Process still running after timeout. stopping...")
-            exec.terminate()
+
+        if(wtime == 0):
+            stdin,stdout,stderr=ssh_client.exec_command(command)
+            print(stdout.readlines())
+            print(stderr.readlines())
         else:
-            print("Display results of process...")
-        commandfinish.clear()
+            
+            exec = multiprocessing.Process(target=execute, name="command execution", args=(ssh_client, command))
+            exec.start()
+            
+
+
+
+            for i in range(wtime):
+                time.sleep(1)
+                print("time is {}".format(i))
+                print(exec.is_alive)
+                if commandfinish.is_set():
+                    break
+                
+            if not commandfinish.is_set():
+                print("Process still running after timeout. stopping...")
+                exec.terminate()
+            else:
+                print("Display results of process...")
+            commandfinish.clear()
             
     except Exception as e:
         print(e)

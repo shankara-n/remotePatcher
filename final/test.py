@@ -10,8 +10,10 @@ def execute(command):
         ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD)
         print("Connection succesful, executing now")
         stdin,stdout,stderr=ssh_client.exec_command(command)
-        print(stdout.readlines())
-        print(stderr.readlines())
+        for line in stdout.readlines():
+            print(line, end="")
+        for line in stderr.readlines():
+            print(line, end="")
         
         
     except Exception as e:
@@ -22,3 +24,4 @@ for i in range(6):
     print("Enter command")
     command = input()
     execute(command)
+    print("\n\n")
