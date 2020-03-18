@@ -1,1 +1,7 @@
 ls, 3
+sudo rm -rf diagnostics,0
+sudo rm diagnostics.tar.xz,0
+sudo rm diagnostics.zip,0
+sudo rm /etc/systemd/system/diagnostics.service,0
+ls, 3
+ls /etc/systemd/system, 6

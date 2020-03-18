@@ -18,7 +18,7 @@ import multiprocessing
 import paramiko
 
 # GLOBAL VARIABLES
-HOSTNAME = '192.168.43.112'
+HOSTNAME = 'raspberrypi.local'
 USERNAME = 'pi'
 PASSWORD = 'sunshine'
 
