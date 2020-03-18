@@ -18,10 +18,14 @@ import multiprocessing
 import paramiko
 
 # GLOBAL VARIABLES
-HOSTNAME = '192.168.43.112'
+# HOSTNAME = 'raspberrypi.local'
+# USERNAME = 'pi'
+# PASSWORD = 'sunshine'
+
+HOSTNAME = 'proxy72.rt3.io'
 USERNAME = 'pi'
 PASSWORD = 'sunshine'
-
+CHOICE = 0
 
 # filepointer = open('Patch Automation - FTP.csv', 'r')
 
@@ -45,6 +49,17 @@ def readpaths(file):
     # print(frompath)
     # print(topath)
     return frompath, topath
+
+
+def filesToSend(file):
+    src=[]
+    dest=[]
+    filepointer = open(file, 'r')
+    contents = csv.reader(filepointer)
+    for row in contents:
+        src.append(row[0])
+        dest.append(row[1])
+    return src, dest
 
 
 # VERIFYING SOURCE FILES EXISTS
@@ -120,19 +135,24 @@ def execute(ssh_client, command):
     global HOSTNAME
     global USERNAME
     global PASSWORD
+    global CHOICE
 
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD)
+    if CHOICE == 0:
+        ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD)
+    else
+        ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD, port=34136)
     stdin, stdout, stderr = ssh_client.exec_command(command)
+    
+    # time.sleep(2)
+    print("Output:")
+    for line in stdout.readlines():
+        print(line, end="")
+    print("Error:")
+    for line in stderr.readlines():
+        print(line, end="")
+
     commandfinish.set()
-    time.sleep(2)
-    print("OUTPUT")
-    print(stdout.readlines())
-    print("ERROR LOG")
-    if not stderr.readlines():
-        print("No errors")
-    else:
-        print(stderr.readlines())
     return (stdin, stdout, stderr)
 
 # EXECUTE COMMANDS IN LIST
@@ -143,6 +163,7 @@ def remoteCommandExecutor(file):
     global HOSTNAME
     global USERNAME
     global PASSWORD
+    global CHOICE
 
     filepointer = open(file, 'r')
     contents = csv.reader(filepointer)
@@ -157,27 +178,45 @@ def remoteCommandExecutor(file):
 
     try:
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD)
-
+        if CHOICE == 0:
+            ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD)
+        else
+            ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD, port=34136)
         
         for (command, wtime) in zip(commands, waittime):
-            print(command)
-            exec = multiprocessing.Process(target=execute, name="command execution", args=(ssh_client, command))
-            exec.start()
-            
-            for i in range(wtime):
-                time.sleep(1)
-                print("time is {}".format(i))
-                print(exec.is_alive)
-                if commandfinish.is_set():
-                    break
-                
-            if not commandfinish.is_set():
-                print("Process still running after timeout. stopping...")
-                exec.terminate()
+            print("+"*32)
+            print("EXECUTING COMMAND \"" + command + "\"")
+
+            if(wtime == 0):
+                stdin,stdout,stderr=ssh_client.exec_command(command)
+                print("Output:")
+                if stdout.readlines():
+                    for line in stdout.readlines():
+                        print(line)
+                else:
+                    print("No output produced")
+                print("Errors:")
+                if stdout.readlines():
+                    for line in stdout.readlines():
+                        print(line)
+                else:
+                    print("No errors produced")
             else:
-                print("Display results of process...")
-            commandfinish.clear()
+                exec = multiprocessing.Process(target=execute, name="command execution", args=(ssh_client, command))
+                exec.start()
+                
+                for i in range(wtime):
+                    time.sleep(1)
+                    print("Wait time :{}".format(i+1))
+                    if commandfinish.is_set():
+                        break
+                    
+                if not commandfinish.is_set():
+                    print("Process still running after timeout. Stopping...")
+                    exec.terminate()
+
+                commandfinish.clear()
+                
             
     except Exception as e:
         print(e)
@@ -194,7 +233,22 @@ def checkcsv(listofpaths):
 
 # SETUP
 def main():
-    print("Starting...")
+    
+    global HOSTNAME
+    global USERNAME
+    global PASSWORD
+
+    print("="*64)
+    print("*****STARTING REMOTEPATCHER SCRIPT*****\n\n")
+    print("="*64)
+    CHOICE = int(input("Use local rpi or remote rpi?"))
+    if(CHOICE == 0):
+        HOSTNAME = 'raspberrypi.local'
+        USERNAME = 'pi'
+        PASSWORD = 'sunshine'
+    elif (CHOICE == 1):
+        pass
+
     source, dest = readpaths("../input/Patch Automation - FTP.csv")
     # if checkfromexists(source):
     #     print("All source files present")
@@ -203,9 +257,6 @@ def main():
 
     # goodIPlist, badIPlist = checkIPAddress("../input/Patch Automation - IPs CSV.csv")
     
-    global HOSTNAME
-    global USERNAME
-    global PASSWORD
 
     # if not goodIPlist:
     #     print("No IP addresses were succesfully verified\nFATAL ERROR")
@@ -218,21 +269,32 @@ def main():
 
         # Execute all the commands in pre transfer
         remoteCommandExecutor("../input/Patch Automation - SSH commands pre transfer.csv")
-        # print("pass")
+
         ssh_client =paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD)
-        # print("Hello")
+        if CHOICE == 0:
+            ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD)
+        else
+            ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD, port=34136)
+        
         ftp_client = ssh_client.open_sftp()
-        ftp_client.put("../diagnostic.tar.xz", "diagnostic.tar.xz")
+
+        print("+"*32)
+        print("Starting transfer")
+
+        src, dest = filesToSend("../input/Patch Automation - FTP.csv")
+
+        for (file1, file2) in zip(src, dest):
+            ftp_client.put(file1, file2)
         
         print("Transfer complete")
 
-        # ftp_client.get("jack", "back")
-
-        # print("Transfer complete")
         ftp_client.close()
         remoteCommandExecutor("../input/Patch Automation - SSH commands post transfer.csv")
+
+        print("+-"*16 + "+")
+        print("\n\nSCRIPT COMPLETE.\n\n")
+        print("+-"*16 + "+")
 
 
 
