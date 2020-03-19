@@ -180,15 +180,17 @@ def execute(ssh_client, command):
         ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD, port=34136)
     stdin, stdout, stderr = ssh_client.exec_command(command)
     
+    commandfinish.set()
     # time.sleep(2)
     print("Output:")
+    # print(stdout.readlines())
     for line in stdout.readlines():
         print(line, end="")
     print("Error:")
     for line in stderr.readlines():
         print(line, end="")
 
-    commandfinish.set()
+    
     return (stdin, stdout, stderr)
 
 # EXECUTE COMMANDS IN LIST
@@ -222,7 +224,6 @@ def remoteCommandExecutor(file):
         for (command, wtime) in zip(commands, waittime):
             print("+"*32)
             print("EXECUTING COMMAND \"" + command + "\"")
-
             if(wtime == 0):
                 stdin,stdout,stderr=ssh_client.exec_command(command)
                 print("Output:")
@@ -275,7 +276,7 @@ def main():
     global PASSWORD
 
     print("="*64)
-    print("*****STARTING REMOTEPATCHER SCRIPT*****\n\n")
+    print("\n*****STARTING REMOTEPATCHER SCRIPT*****\n")
     print("="*64)
     CHOICE = int(input("Use local rpi or remote rpi?"))
     if(CHOICE == 0):

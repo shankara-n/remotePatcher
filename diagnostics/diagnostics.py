@@ -1,6 +1,7 @@
 
 import os
 import sys
+from datetime import datetime
 
 # Compression of logs
 import shutil
@@ -21,10 +22,6 @@ from os import listdir
 from os.path import isfile, join
 from shutil import copyfile
 
-#Checking RAM usage
-import tracemalloc
-tracemalloc.start()
-
 #Checking processor consumption
 import psutil
 
@@ -42,7 +39,9 @@ import logging
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
 
-log_formatter = logging.Formatter(' %(message)s')
+import traceback
+
+log_formatter = logging.Formatter('%(message)s')
 
 processName = Path(__file__).stem
 logsPath = '/home/pi/Voyager-Zone-Controller/logs/'
@@ -61,9 +60,11 @@ logger.addHandler(rotatingFileHandler)
 COL_WIDTH = 30
 SMALL_COL_WIDTH = 13
 
-# Email Auth
-MY_ADDRESS = "developforftc@gmail.com"
+# Default Config (will be overwritten by contents of config.json)
+MY_EMAIL_ADDRESS = "developforftc@gmail.com"
 PASSWORD = "Sunshine99$"
+toMailIDs = ""
+checkingPeriod = 60
 
 # Default Values
 zoneID = "Unknown Zone"
@@ -101,15 +102,16 @@ def compressLogs():
 
 
 def sendEmail(subject):
+    logger.info("Sending Email to :"+toMailIDs)
 
     conn = smtplib.SMTP('imap.gmail.com', 587)
     conn.ehlo()
     conn.starttls()
-    conn.login(MY_ADDRESS, PASSWORD)
+    conn.login(MY_EMAIL_ADDRESS, PASSWORD)
 
     message = MIMEMultipart()
     message['To'] = toMailIDs
-    message['From'] = MY_ADDRESS
+    message['From'] = MY_EMAIL_ADDRESS
     message['Subject'] = subject + " at " + zoneID + ", " + plantName
 
     zipfilename = compressLogs()
@@ -128,11 +130,11 @@ def sendEmail(subject):
 
     msg = message.as_string()
 
-    print(toMailIDs)
-    conn.sendmail(MY_ADDRESS, toMailIDs.split(','), msg)
-    print("Finished sending Email")
-
+    conn.sendmail(MY_EMAIL_ADDRESS, toMailIDs.split(','), msg)
+   
     conn.quit()
+    
+    logger.info("[!] E-Mail Alert Sent!")
 
 
 def loadIdentity():
@@ -147,69 +149,73 @@ def loadIdentity():
             plantName = db['plant_data'].find()[0]["name"]
             ip = subprocess.check_output(["./checkIP.sh"], shell=True).decode()
 
-            print(zoneID + ", " + plantName)
-            print(ip)
+            logger.info(zoneID + ", " + plantName)
+            logger.info(ip)
             client.close()
         except:
             logger.info("   ***   Cannot connect to DB!!   ***")
             sendEmail(" DB Connection Lost !")
     except:
-        print("Could not send email!!! Please check your connection")
+        logger.info("Could not send email!!! Please check the internet connection.")
 
 
 def logDBStats():
 
+    logger.info("\n~~~~~~ MongoDB Stats ~~~~~~")
+
     try:
+
+        client = MongoClient()
+
+        db = client.voyagerDB
+
+        totalStorageSize = 0
+        logger.info("File size from mongo ".ljust(COL_WIDTH) +
+                    ":" + str(db.command("dbstats")['fileSize']))
+        serverStatus = db.command("serverStatus")
+        logger.info("DB Connections ".ljust(COL_WIDTH) +
+                    ":" + str(serverStatus['connections']))
+        logger.info("DB Mem  ".ljust(COL_WIDTH) +
+                    ":" + str(serverStatus['mem']))
+        logger.info("DB Page Fault  ".ljust(COL_WIDTH) + ":" +
+                    str(serverStatus['extra_info']['page_faults']))
+        ret = subprocess.check_output(["./checkJournal.sh"], shell=True)
+        logger.info(ret.decode())
+
+        # Collections
+        logger.info("\nCOLLECTION".ljust(COL_WIDTH) + "\tSTORAGE_SIZE".ljust(
+            SMALL_COL_WIDTH) + "\tCAPPED".ljust(SMALL_COL_WIDTH) + "\tFragmentation\n")
+        for coll in db.collection_names():
+            stats = db.command("collstats", coll)
+
+            totalStorageSize += stats['storageSize']
+            if 'capped' in list(stats):
+                cap = True
+            else:
+                cap = False
+            frag = stats['storageSize'] / \
+                (stats['size'] + stats['totalIndexSize'])
+            frag = round(frag, 2)
+
+            logger.info(coll.ljust(COL_WIDTH) + "\t" + str(stats['storageSize']).ljust(
+                SMALL_COL_WIDTH) + "\t" + str(cap).ljust(SMALL_COL_WIDTH) + "\t" + str(frag))
+
+        logger.info("\nTOTAL STORAGE_SIZE : "+str(totalStorageSize))
+        client.close()
+    except Exception as e:
+        logger.error("   ***   Error connecting to DB!!   ***")
+        logger.error("type error: " + str(e))
+
         try:
-
-            client = MongoClient()
-
-            db = client.voyagerDB
-
-            totalStorageSize = 0
-            logger.info("File size from mongo ".ljust(COL_WIDTH) +
-                        ":" + str(db.command("dbstats")['fileSize']))
-            serverStatus = db.command("serverStatus")
-            logger.info("DB Connections ".ljust(COL_WIDTH) +
-                        ":" + str(serverStatus['connections']))
-            logger.info("DB Mem  ".ljust(COL_WIDTH) +
-                        ":" + str(serverStatus['mem']))
-            logger.info("DB Page Fault  ".ljust(COL_WIDTH) + ":" +
-                        str(serverStatus['extra_info']['page_faults']))
-            ret = subprocess.check_output(["./checkJournal.sh"], shell=True)
-            logger.info(ret.decode())
-            ret = subprocess.check_output(["./checkDiskUsage.sh"], shell=True)
-            logger.info(ret.decode())
-
-            # Collections
-            logger.info("\nCOLLECTION".ljust(COL_WIDTH) + "\tSTORAGE_SIZE".ljust(
-                SMALL_COL_WIDTH) + "\tCAPPED".ljust(SMALL_COL_WIDTH) + "\tFragmentation\n")
-            for coll in db.collection_names():
-                stats = db.command("collstats", coll)
-
-                totalStorageSize += stats['storageSize']
-                if 'capped' in list(stats):
-                    cap = True
-                else:
-                    cap = False
-                frag = stats['storageSize'] / \
-                    (stats['size'] + stats['totalIndexSize'])
-                frag = round(frag, 2)
-
-                logger.info(coll.ljust(COL_WIDTH) + "\t" + str(stats['storageSize']).ljust(
-                    SMALL_COL_WIDTH) + "\t" + str(cap).ljust(SMALL_COL_WIDTH) + "\t" + str(frag))
-
-            logger.info("\nTOTAL STORAGE_SIZE : "+str(totalStorageSize))
-
-            client.close()
-        except:
-            logger.info("   ***   Cannot connect to DB!!   ***")
             sendEmail(" DB Connection Lost !")
-    except:
-        print("Could not send email!!! Please check your connection")
+        except Exception as e:
+            logger.info("Could not send email!!! Please check the internet connection.")
+            logger.error("type error: " + str(e))
 
 
 def logFileSizes():
+    
+    logger.info("\n~~~~~~ Log File Stats ~~~~~~")
 
     # Flag for finding creation of voyagerDB.5
     isDB5created = False
@@ -218,17 +224,16 @@ def logFileSizes():
     for (path, dirs, files) in os.walk('/data/db'):
         for fileName in files:
             filePath = os.path.join(path, fileName)
-            file1 = open(logFile, 'a')
             logger.info('{0: <14}'.format(
                 str(os.path.getsize(filePath)))+" : "+filePath)
             if(fileName == "voyagerDB.5"):
+                logger.error("[!] WARNING!!! db.5 file created !!!")
                 isDB5created = True
 
     logger.info('Log File Sizes')
     for (path, dirs, files) in os.walk('/var/log'):
         for fileName in files:
             filePath = os.path.join(path, fileName)
-            file1 = open(logFile, 'a')
             if (fileName.startswith('syslog')) or (fileName.startswith('daemon')):
                 logger.info('{0: <14}'.format(
                     str(os.path.getsize(filePath)))+" : "+filePath)
@@ -236,113 +241,63 @@ def logFileSizes():
     for (path, dirs, files) in os.walk('/var/log/mongodb'):
         for fileName in files:
             filePath = os.path.join(path, fileName)
-            file1 = open(logFile, 'a')
             logger.info('{0: <14}'.format(
                 str(os.path.getsize(filePath)))+" : "+filePath)
 
-    try:
-        if isDB5created:
+    if isDB5created:
+        try:
             sendEmail("voyagerDB.5 created !")
-    except:
-        print("Could not send email!!! Please check your connection")
+        except Exception as e:
+            logger.error("Could not send email!!! Please check the internet connection.")
+            logger.error("type error: " + str(e))
+            logger.error(traceback.format_exc())
 
-def logTempRAM():
-    current, peak = tracemalloc.get_traced_memory()
+def logSystemStats():
+
+    logger.info("~~~~~~ System Stats ~~~~~~")
+    # temp
     cpuTemp = subprocess.check_output(["vcgencmd measure_temp"] , shell=True).decode()
-    current=current/(10**6)
-    stats = psutil.cpu_percent(percpu=True)
-    mem = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
-    logger.info('Processor consumption :')
+    logger.info("CPU Temperature :" +str(cpuTemp))
+
+    # processor consumption
+    cpuConsumption = psutil.cpu_percent(percpu=True)
+    logger.info('[*] Processor consumption :' +str(cpuConsumption))
+
+    # memory consumption
+    logger.info('[*] Virtual memory usage:')
     logger.info(psutil.virtual_memory())
+    logger.info('[*] Swap memory usage:')
     logger.info(psutil.swap_memory())
-    logger.info(disk)
-    logger.info(mem)
-    #peak=peak/(10**6)
-    logger.info('Current memory usage is')
-    logger.info(current)
-    logger.info(cpuTemp)
 
+    # disk usage
+    disk = psutil.disk_usage('/')
+    logger.info("[*] Disk usage :"+str(disk))
 
-def main(MY_ADDRESS):
-    global toMailIDs
+def loadConfiguration():
+    global toMailIDs, checkingPeriod, MY_EMAIL_ADDRESS, PASSWORD
 
-    """# Getting the command line arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--time', type=int, help='Checking Period')
-    parser.add_argument(
-        '--m0', type=str, default='developforftc@gmail.com', help='Sender\'s Email ID')
-    parser.add_argument('--p', type=str, default='Sunshine99$',
-                        help='Sender\'s Password')
+    with open('config.json') as configFile:
+        config = json.load(configFile)
 
-    if len(sys.argv) < 2:
-        print("Usage : diagnostics --time CHECKING_PERIOD --m0 SENDER'S_EMAIL_ID --p SENDER'S_PASSWORD --m1 MAIL_1 --m2 MAIL_2 --m3 MAIL_3 ...")
-        sys.exit()
-
-    flg = 0
-    if(sys.argv[1]=="--m0"):
-        if(sys.argv[3]=='p'):
-            MY_ADDRESS = sys.argv[2]
-            PASSWORD = sys.argv[4]
-            flg = 1
-        else:
-            print("Password not entered, hence default email has not been changed")
-            flg=2
-
-
-    
-    if flg==1:
-        l = len(sys.argv)-7
-    else: 
-        l = len(sys.argv)-3
-    
-    for i in range(1, l):
-        x = '--m'+str(i)
-        parser.add_argument(x, help='Receiver\'s mail ID')
-    args = parser.parse_args()
-
-    # Send mail to ourselves atleast
-    toMailIDs = MY_ADDRESS
-
-    checkingPeriod = args.time
-    if flg == 1:
-        mailIDcount = (len(sys.argv) - 7)/2
-        i = 6
-    else:
-        mailIDcount = (len(sys.argv) - 3)/2
-        i = 2
-
-    mailIDcount = int(mailIDcount)
-    i = int(i)+2
-
-    if flg==2:
-        i=i+2
-        mailIDcount-=1
-
-    for index in range(1, mailIDcount+1):
-        toMailIDs = toMailIDs + "," + sys.argv[i]
-        i = i+2"""
-    with open('config.json') as f:
-        data = json.load(f)
-
-    checkingPeriod=data['time']
-    MY_ADDRESS=data['m0']
-    PASSWORD=data['p']
-    toMailIDs=data['recepients'][0]
-    for i in range(1,len(data['recepients'])):
-        toMailIDs = toMailIDs + "," + data['recepients'][i]
-    
-
-    print(toMailIDs)
+    checkingPeriod=config['time']
+    MY_EMAIL_ADDRESS=config['m0']
+    PASSWORD=config['p']
+    toMailIDs=','.join(config['recepients'])
 
     loadIdentity()
 
-    while True:
-        logTempRAM()
-        logDBStats()
-        logFileSizes()
-        time.sleep(checkingPeriod)
-
 
 if __name__ == "__main__":
-    main(MY_ADDRESS)
+
+    logger.info("\n*********************** ^^^ *********************** Diagnostics Started *********************** ^^^ ***********************\n")
+    loadConfiguration()
+
+    while True:
+        now = datetime.now() 
+        logger.info("\n*********************** Starting checks at: "+now.strftime("%m/%d/%Y, %H:%M:%S")+ "\n")
+
+        logSystemStats()
+        logDBStats()
+        logFileSizes()
+
+        time.sleep(checkingPeriod)
