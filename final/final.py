@@ -83,6 +83,42 @@ def checktoexists(topath):
                 return False
     return True
 
+# READ USERNAME, PASSWORD, HOSTNAME AND PORT from IP.csv
+def logincred(path):
+    """There are sometimes usernames and passes, but without ports, for which we need an extra parameter"""
+    hosts  = []
+    users  = []
+    passes = []
+
+    phost = []
+    puser = []
+    ppass = []
+    port  = []
+
+    try:
+        csv_file=open(path, mode='r')
+    except IOError:
+        print("IP.csv file does not exist")
+
+    contents = csv.reader(csv_file)
+
+    for row in contents:
+        if(row[3]):
+            phost.append(row[0])
+            puser.append(row[1])
+            ppass.append(row[2])
+            port.append(row[3])
+        else:
+            hosts.append(row[0])
+            users.append(row[1])
+            passes.append(row[2])
+        
+    filepointer.close()
+
+    return (hosts, users, passes, phost, puser, ppass, port)
+
+
+
 # PINGING
 def ping(host):
     """
@@ -140,7 +176,7 @@ def execute(ssh_client, command):
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     if CHOICE == 0:
         ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD)
-    else
+    else:
         ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD, port=34136)
     stdin, stdout, stderr = ssh_client.exec_command(command)
     
@@ -180,7 +216,7 @@ def remoteCommandExecutor(file):
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         if CHOICE == 0:
             ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD)
-        else
+        else:
             ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD, port=34136)
         
         for (command, wtime) in zip(commands, waittime):
@@ -274,7 +310,7 @@ def main():
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         if CHOICE == 0:
             ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD)
-        else
+        else:
             ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD, port=34136)
         
         ftp_client = ssh_client.open_sftp()
