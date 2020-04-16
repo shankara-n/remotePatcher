@@ -1,6 +1,4 @@
 ls,99
-tar -xvf diagnostics.tar.xz,0
-tar -xvf backup.tar.xz,0
+tar -xvf patchFiles.tar,0
 sudo cp diagnostics/diagnostics.service /etc/systemd/system/diagnostics.service,0
 ls,99
-python3 diagnostics/diagnostics.py,10

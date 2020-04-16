@@ -175,7 +175,7 @@ def execute(ssh_client, command):
     global PORT
 
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD)
+    ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD,port=PORT)
     stdin, stdout, stderr = ssh_client.exec_command(command)
     
     commandfinish.set()
@@ -201,6 +201,8 @@ def remoteCommandExecutor(file):
     global PASSWORD
     global PORT
 
+    # print("Hostname {}, port #{}, User {}, pass {}".format(HOSTNAME, PORT, USERNAME, PASSWORD))
+
     filepointer = open(file, 'r')
     contents = csv.reader(filepointer)
 
@@ -214,7 +216,7 @@ def remoteCommandExecutor(file):
 
     try:
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD)
+        ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD,port=PORT)
         
         for (command, wtime) in zip(commands, waittime):
             print("+"*32)
@@ -284,7 +286,6 @@ def main():
 
     print("Reading login credentials")
     hostlist, userlist, passlist, portlist = logincred("../input/Patch Automation - IPs CSV.csv")
-    # goodIPlist, badIPlist, portlist = checkIPAddress("../input/Patch Automation - IPs CSV.csv")
     print("Done")
 
     for (host, user, passw, port) in zip(hostlist, userlist, passlist, portlist):
@@ -292,7 +293,10 @@ def main():
         PORT = port
         USERNAME = user
         PASSWORD = passw
-
+        # print(type(host))
+        # print(type(user))
+        # print(type(passw))
+        # print(type(port))
         print("Hostname {}, port #{}, User {}".format(host, port, user))
 
         # Execute all the commands in pre transfer
@@ -305,7 +309,7 @@ def main():
         print("Transferring files")
         ssh_client =paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD)
+        ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD,port=PORT)
         
         ftp_client = ssh_client.open_sftp()
 
