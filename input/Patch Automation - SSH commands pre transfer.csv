@@ -1,2 +1,6 @@
-cd pi
-ls
+ls, 99
+sudo rm -rf diagnostics,0
+sudo rm diagnostics.tar.xz,0
+sudo rm diagnostics.zip,0
+ls, 99
+ls /etc/systemd/system, 99

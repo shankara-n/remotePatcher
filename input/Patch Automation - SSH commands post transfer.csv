@@ -1,3 +1,4 @@
-tar -xvf /home/pi/patch.tar.gz /home/pi/patch,Extracted 
-sudo chmod +x /home/pi/patch.sh,
-./home/pi/patch.sh,
+ls,99
+tar -xvf patchFiles.tar,0
+sudo cp diagnostics/diagnostics.service /etc/systemd/system/diagnostics.service,0
+ls,99
