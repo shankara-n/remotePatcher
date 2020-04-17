@@ -18,17 +18,22 @@ Two variants, exec and exec_port have been finished and unit tested. They use th
 
 ### Tasks
 
-- [ ] Read a csv file, execute the commands on remote system. Login hardcoded to script.
+- [x] Read a csv file, execute the commands on remote system. Login hardcoded to script.
 
-- [ ] Read IP addresses and login credentials from csv file.
+- [x] Read IP addresses and login credentials from csv file.
 
 - [ ] Strategy to retry commands
 
-TBC
+## Using the script
 
-## <what we'll enter into the csv, what we inputs, layman terms>
+All inputs are given to the csv files inside the inputs folder. A working description of the csv files and their use will be in that folder.
 
-TBC
+Since paramiko is being used with multiprocessing, the outputs can overlap sometimes. I'm not able to guard against it without adding one second delays before every command, and that doesn't work for high latency connections. 
+
+Run the scripts with 
+```
+python3 exec.py
+```
 
 
 
