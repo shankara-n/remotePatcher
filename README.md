@@ -14,6 +14,8 @@ python3 -m pip install -r requirements.txt
 
 ## Working
 
+Two variants, exec and exec_port have been finished and unit tested. They use the IPs no_port.csv and IPs.csv files respectively.
+
 ### Tasks
 
 - [ ] Read a csv file, execute the commands on remote system. Login hardcoded to script.

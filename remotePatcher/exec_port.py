@@ -52,6 +52,7 @@ def readpaths(file):
 
 
 def filesToSend(file):
+    """Takes a filepath to return the list of source and destination paths."""
     src=[]
     dest=[]
     filepointer = open(file, 'r')
@@ -85,7 +86,7 @@ def checktoexists(topath):
 
 # READ USERNAME, PASSWORD, HOSTNAME AND PORT from IP.csv
 def logincred(path):
-    """There are sometimes usernames and passes, but without ports, for which we need an extra parameter"""
+    """There are sometimes usernames and passes, but without ports, for which we need an extra parameter. Here, we return only the lists without a port number."""
     hosts  = []
     users  = []
     passes = []

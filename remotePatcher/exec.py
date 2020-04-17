@@ -17,18 +17,6 @@ import multiprocessing
 # for ssh and sftp
 import paramiko
 
-# GLOBAL VARIABLES
-# HOSTNAME = 'raspberrypi.local'
-# USERNAME = 'pi'
-# PASSWORD = 'sunshine'
-
-HOSTNAME = 'proxy72.rt3.io'
-USERNAME = 'pi'
-PASSWORD = 'sunshine'
-CHOICE = 0
-
-# filepointer = open('Patch Automation - FTP.csv', 'r')
-
 # READING FILE FOR CHECKING
 def readpaths(file):
     """Reads from path passed as file, and returns two lists"""
@@ -52,6 +40,7 @@ def readpaths(file):
 
 
 def filesToSend(file):
+    """Takes a filepath to return the list of source and destination paths."""
     src=[]
     dest=[]
     filepointer = open(file, 'r')
@@ -85,7 +74,7 @@ def checktoexists(topath):
 
 # READ USERNAME, PASSWORD, HOSTNAME AND PORT from IP.csv
 def logincred(path):
-    """There are sometimes usernames and passes, but without ports, for which we need an extra parameter"""
+    """There are sometimes usernames and passes, but without ports, for which we need an extra parameter. Here, we return only the lists without a port number."""
     hosts  = []
     users  = []
     passes = []
@@ -103,20 +92,13 @@ def logincred(path):
     contents = csv.reader(csv_file)
 
     for row in contents:
-        if(row[3]):
-            phost.append(row[0])
-            puser.append(row[1])
-            ppass.append(row[2])
-            port.append(row[3])
-        else:
-            hosts.append(row[0])
-            users.append(row[1])
-            passes.append(row[2])
+        hosts.append(row[0])
+        users.append(row[1])
+        passes.append(row[2])
         
-    filepointer.close()
+    # filepointer.close()
 
-    return (hosts, users, passes, phost, puser, ppass, port)
-
+    return hosts, users, passes
 
 
 # PINGING
@@ -135,7 +117,7 @@ def ping(host):
 def checkIPAddress(ipaddr):
     goodIPlist=[]
     badIPlist=[]
-
+    
     try:
         csv_file=open(ipaddr, mode='r')
     except IOError:
@@ -171,13 +153,9 @@ def execute(ssh_client, command):
     global HOSTNAME
     global USERNAME
     global PASSWORD
-    global CHOICE
 
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    if CHOICE == 0:
-        ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD)
-    else:
-        ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD, port=34136)
+    ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD)
     stdin, stdout, stderr = ssh_client.exec_command(command)
     
     commandfinish.set()
@@ -201,7 +179,6 @@ def remoteCommandExecutor(file):
     global HOSTNAME
     global USERNAME
     global PASSWORD
-    global CHOICE
 
     filepointer = open(file, 'r')
     contents = csv.reader(filepointer)
@@ -216,10 +193,7 @@ def remoteCommandExecutor(file):
 
     try:
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        if CHOICE == 0:
-            ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD)
-        else:
-            ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD, port=34136)
+        ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD)
         
         for (command, wtime) in zip(commands, waittime):
             print("+"*32)
@@ -278,45 +252,40 @@ def main():
     print("="*64)
     print("\n*****STARTING REMOTEPATCHER SCRIPT*****\n")
     print("="*64)
-    CHOICE = int(input("Use local rpi or remote rpi?"))
-    if(CHOICE == 0):
-        HOSTNAME = 'raspberrypi.local'
-        USERNAME = 'pi'
-        PASSWORD = 'sunshine'
-    elif (CHOICE == 1):
-        pass
-
+    print("Reading source and destination paths")
     source, dest = readpaths("../input/Patch Automation - FTP.csv")
     # if checkfromexists(source):
     #     print("All source files present")
     # else:
     #     print("Some source files missing")
+    print("Done")
 
-    # goodIPlist, badIPlist = checkIPAddress("../input/Patch Automation - IPs CSV.csv")
-    
+    print("Reading login credentials")
+    hostlist, userlist, passlist = logincred("../input/Patch Automation - IPs CSV no_ports.csv")
+    print("Done")
 
-    # if not goodIPlist:
-    #     print("No IP addresses were succesfully verified\nFATAL ERROR")
-    #     exit()
+    for (host, user, passw) in zip(hostlist, userlist, passlist):
+        HOSTNAME = host
+        USERNAME = user
+        PASSWORD = passw
 
-    goodIPlist = [HOSTNAME]
-
-    for ip in goodIPlist:
-        HOSTNAME = ip
+        print("Hostname {}, User {}".format(host, user))
 
         # Execute all the commands in pre transfer
+        print("Running precommands")
         remoteCommandExecutor("../input/Patch Automation - SSH commands pre transfer.csv")
+        print("Done")
 
+
+        print("+"*32)
+        print("Transferring files")
         ssh_client =paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        if CHOICE == 0:
-            ssh_client.connect(hostname=HOSTNAME, username=USERNAME, password=PASSWORD)
-        else:
-            ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD, port=34136)
+        ssh_client.connect(hostname=HOSTNAME,username=USERNAME,password=PASSWORD)
         
         ftp_client = ssh_client.open_sftp()
 
-        print("+"*32)
+        
         print("Starting transfer")
 
         src, dest = filesToSend("../input/Patch Automation - FTP.csv")
@@ -324,10 +293,14 @@ def main():
         for (file1, file2) in zip(src, dest):
             ftp_client.put(file1, file2)
         
-        print("Transfer complete")
+        print("Done")
 
         ftp_client.close()
+
+        print("Running post commands")
         remoteCommandExecutor("../input/Patch Automation - SSH commands post transfer.csv")
+        print("Done")
+
 
         print("+-"*16 + "+")
         print("\n\nSCRIPT COMPLETE.\n\n")
