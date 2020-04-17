@@ -87,9 +87,6 @@ def checktoexists(topath):
 # READ USERNAME, PASSWORD, HOSTNAME AND PORT from IP.csv
 def logincred(path):
     """There are sometimes usernames and passes, but without ports, for which we need an extra parameter. Here, we return only the lists without a port number."""
-    hosts  = []
-    users  = []
-    passes = []
 
     phost = []
     puser = []
@@ -104,15 +101,10 @@ def logincred(path):
     contents = csv.reader(csv_file)
 
     for row in contents:
-        if(row[3]):
-            phost.append(row[0])
-            puser.append(row[1])
-            ppass.append(row[2])
-            port.append(row[3])
-        else:
-            hosts.append(row[0])
-            users.append(row[1])
-            passes.append(row[2])
+        phost.append(row[0])
+        puser.append(row[1])
+        ppass.append(row[2])
+        port.append(row[3])
         
     # filepointer.close()
 
