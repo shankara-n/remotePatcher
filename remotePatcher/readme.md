@@ -1,4 +1,4 @@
-# Implementation script for Shashank's diagnostic script
+# Script to execute precommands, transfer files, and execute postcommands.
 
 ## Execution
 
