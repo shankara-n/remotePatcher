@@ -2,16 +2,13 @@
 
 ## Execution
 
-`python3 final.py`
+`python3 exec.py`
 
 ## Notes
 
 Ensure the csv files are in input folder, and named accordingly.
 
-Ensure diagnostic.py is in script folder
-
 ## Issues
 
 - [ ] Ping command keeps flooding the terminal with output, find a quieter version
 
-- [ ] Not done yet
