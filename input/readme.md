@@ -1,10 +1,8 @@
 # CSV FILE FORMATS
 
-## General guidelines
+## Notes
 
-This is for running exec_port.py
-
-For exec.py, the format of IP.csv has only the IP addresses, one on each line.
+This is for running exec.py
 
 Remove any excess spaces before and after the commas. They may cause errors in the program.
 
