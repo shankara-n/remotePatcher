@@ -18,16 +18,9 @@ import multiprocessing
 import paramiko
 
 # GLOBAL VARIABLES
-# HOSTNAME = 'raspberrypi.local'
-# USERNAME = 'pi'
-# PASSWORD = 'sunshine'
-
-HOSTNAME = 'proxy72.rt3.io'
+HOSTNAME = 'raspberrypi.local'
 USERNAME = 'pi'
 PASSWORD = 'sunshine'
-PORT = '22'
-
-# filepointer = open('Patch Automation - FTP.csv', 'r')
 
 # READING FILE FOR CHECKING
 def readpaths(file):
