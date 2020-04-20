@@ -14,11 +14,11 @@ python3 -m pip install -r requirements.txt
 
 ## Working
 
-Two variants, exec and exec_port have been finished and unit tested. They use the IPs no_port.csv and IPs.csv files respectively.
+The script is remotePatcher/exec.py.
 
 ### Tasks
 
-- [x] Read a csv file, execute the commands on remote system. Login hardcoded to script.
+- [x] Read a csv file, execute the commands on remote system.
 
 - [x] Read IP addresses and login credentials from csv file.
 
