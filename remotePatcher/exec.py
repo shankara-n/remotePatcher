@@ -158,33 +158,34 @@ def checkHosts(hostlist, userlist, passlist, portlist):
     goodpasslist=[]
     goodportlist=[]
     
-    badhostlist=[]
-    baduserlist=[]
-    badpasslist=[]
-    badportlist=[]
+    # badhostlist=[]
+    # baduserlist=[]
+    # badpasslist=[]
+    # badportlist=[]
     ssh_client =paramiko.SSHClient()
     for (host, user, passw, port) in zip(hostlist, userlist, passlist, portlist):
-        print("Hostname {}, port #{}, User {}".format(host, port, user))
+        print("\n\nHostname {}, port #{}, User {}".format(host, port, user))
         try:
             ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh_client.connect(hostname=host,username=user,password=passw,port=port)
         except socket.gaierror as e:
-            # print(e)
-            badhostlist.append(host)
-
-            badportlist.append(port)
+            # badhostlist.append(host)
+            # badportlist.append(port)
             
             if(e.errno == -3):
                 print("Hostname could not be resolved. Please check again.")
-            if(e.errno == -2):
+            elif(e.errno == -2):
                 print("Hostname could not be identified. Please check hostname, and remove 'https://' if present.")
+            else:
+                print(e)
         except Exception as e:
-            badhostlist.append(host)
-            badportlist.append(port)
+            # badhostlist.append(host)
+            # badportlist.append(port)
             print("Unknown exception encountered.")
             print(e)
             print("Exiting...")
         else:
+            print("Authentication passed")
             goodhostlist.append(host)
             goodportlist.append(port)
             gooduserlist.append(user)
@@ -317,10 +318,10 @@ def main():
     hostlist, userlist, passlist, portlist = logincred("../input/Patch Automation - IPs CSV.csv")
     print("Done")
 
-    print("Verifying login credentials")
+    print("\nVerifying login credentials")
     hostlist, userlist, passlist, portlist = checkHosts(hostlist, userlist, passlist, portlist)
 
-    print("Number of valid connections : {}".format(len(userlist)))
+    print("\nNumber of valid connections : {}".format(len(userlist)))
     
 
     for (host, user, passw, port) in zip(hostlist, userlist, passlist, portlist):
@@ -332,7 +333,7 @@ def main():
         # print(type(user))
         # print(type(passw))
         # print(type(port))
-        print("Hostname {}, port #{}, User {}".format(host, port, user))
+        print("\n\nHostname {}, port #{}, User {}".format(host, port, user))
 
         # Execute all the commands in pre transfer
         print("Running precommands")
