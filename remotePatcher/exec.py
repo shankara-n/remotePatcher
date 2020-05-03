@@ -16,6 +16,7 @@ import multiprocessing
 
 # for ssh and sftp
 import paramiko
+import socket 
 
 # GLOBAL VARIABLES
 HOSTNAME = 'raspberrypi.local'
@@ -106,49 +107,91 @@ def logincred(path):
 
 
 # PINGING
-def ping(host):
-    """
-    Returns True if host (str) responds to a ping request.
-    Remember that a host may not respond to a ping (ICMP) request even if the host name is valid.
-    """
-    # Option for the number of packets as a function of
-    param = '-n' if platform.system().lower()=='windows' else '-c'
-    # Building the command. Ex: "ping -c 1 google.com"
-    command = ['ping', param, '1', '-W 100',  '-Q', host]
-    return subprocess.call(command) == 0
+# def ping(host):
+#     """
+#     Returns True if host (str) responds to a ping request.
+#     Remember that a host may not respond to a ping (ICMP) request even if the host name is valid.
+#     """
+#     # Option for the number of packets as a function of
+#     param = '-n' if platform.system().lower()=='windows' else '-c'
+#     # Building the command. Ex: "ping -c 1 google.com"
+#     command = ['ping', param, '1', '-W 100',  '-Q', host]
+#     return subprocess.call(command) == 0
 
-# CHECK IP ADDRESS
-def checkIPAddress(ipaddr):
-    goodIPlist=[]
-    badIPlist=[]
-    portlist=[]
-    try:
-        csv_file=open(ipaddr, mode='r')
-    except IOError:
-        print('File does not exist')
+# # CHECK IP ADDRESS
+# def checkIPAddress(ipaddr):
+#     goodIPlist=[]
+#     badIPlist=[]
+#     portlist=[]
+#     try:
+#         csv_file=open(ipaddr, mode='r')
+#     except IOError:
+#         print('File does not exist')
 
-    csv_reader = csv.reader(csv_file, delimiter=',')
-    line_count = 0
+#     csv_reader = csv.reader(csv_file, delimiter=',')
+#     line_count = 0
 
-    for row in csv_reader:
-        if line_count==0:
-            line_count+=1
-            continue
-        else:
-            if not row:
-                continue
-            connectionStatus = ping(row[0])
-            if(connectionStatus==False):
-                badIPlist.append(row[0])
-            else:
-                goodIPlist.append(row[0])
-                portlist.append(row[1])
+#     for row in csv_reader:
+#         if line_count==0:
+#             line_count+=1
+#             continue
+#         else:
+#             if not row:
+#                 continue
+#             connectionStatus = ping(row[0])
+#             if(connectionStatus==False):
+#                 badIPlist.append(row[0])
+#             else:
+#                 goodIPlist.append(row[0])
+#                 portlist.append(row[1])
     
-    #checking if the file is empty
-    if(line_count==0 or 1):
-        print("File is empty.")
+#     #checking if the file is empty
+#     if(line_count==0 or 1):
+#         print("File is empty.")
 
-    return goodIPlist, badIPlist, portlist
+#     return goodIPlist, badIPlist, portlist
+
+# Function to test every host and port from the file
+def checkHosts(hostlist, userlist, passlist, portlist):
+    goodhostlist=[]
+    gooduserlist=[]
+    goodpasslist=[]
+    goodportlist=[]
+    
+    badhostlist=[]
+    baduserlist=[]
+    badpasslist=[]
+    badportlist=[]
+    ssh_client =paramiko.SSHClient()
+    for (host, user, passw, port) in zip(hostlist, userlist, passlist, portlist):
+        print("Hostname {}, port #{}, User {}".format(host, port, user))
+        try:
+            ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh_client.connect(hostname=host,username=user,password=passw,port=port)
+        except socket.gaierror as e:
+            # print(e)
+            badhostlist.append(host)
+
+            badportlist.append(port)
+            
+            if(e.errno == -3):
+                print("Hostname could not be resolved. Please check again.")
+            if(e.errno == -2):
+                print("Hostname could not be identified. Please check hostname, and remove 'https://' if present.")
+        except Exception as e:
+            badhostlist.append(host)
+            badportlist.append(port)
+            print("Unknown exception encountered.")
+            print(e)
+            print("Exiting...")
+        else:
+            goodhostlist.append(host)
+            goodportlist.append(port)
+            gooduserlist.append(user)
+            goodpasslist.append(passw)
+    
+    return goodhostlist, gooduserlist, goodpasslist, goodportlist
+
 
 # Global event for executing command
 commandfinish = multiprocessing.Event()  
@@ -274,6 +317,12 @@ def main():
     hostlist, userlist, passlist, portlist = logincred("../input/Patch Automation - IPs CSV.csv")
     print("Done")
 
+    print("Verifying login credentials")
+    hostlist, userlist, passlist, portlist = checkHosts(hostlist, userlist, passlist, portlist)
+
+    print("Number of valid connections : {}".format(len(userlist)))
+    
+
     for (host, user, passw, port) in zip(hostlist, userlist, passlist, portlist):
         HOSTNAME = host
         PORT = port
@@ -305,7 +354,11 @@ def main():
         src, dest = filesToSend("../input/Patch Automation - FTP.csv")
 
         for (file1, file2) in zip(src, dest):
-            ftp_client.put(file1, file2)
+            try:
+                ftp_client.put(file1, file2)
+            except Exception:
+                print("Some error occured, check the file '{}' path and try again".format(file1))
+            
         
         print("Done")
 
