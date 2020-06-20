@@ -21,6 +21,7 @@ import paramiko
 HOSTNAME = 'raspberrypi.local'
 USERNAME = 'pi'
 PASSWORD = 'sunshine'
+PORT = '22'
 
 # READING FILE FOR CHECKING
 def readpaths(file):
