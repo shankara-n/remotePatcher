@@ -119,3 +119,9 @@ Nulla facilisi. Ut rhoncus luctus faucibus. Curabitur eleifend gravida posuere. 
 Sed finibus pulvinar orci, interdum faucibus libero sodales non. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Phasellus elit ligula, porttitor sed hendrerit quis, pharetra sit amet diam. Integer sit amet pellentesque enim. Aliquam erat volutpat. Vivamus rutrum odio eu porta luctus. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. In efficitur eleifend ipsum, in rutrum sapien ultrices a. Cras ornare efficitur lectus ac placerat. Phasellus auctor diam eget est maximus ullamcorper. Duis sit amet facilisis purus. Etiam ut consectetur neque. Integer ullamcorper efficitur libero ac sollicitudin. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos.
 
 Mauris sollicitudin sagittis augue eget varius. Donec consectetur massa purus, in bibendum turpis volutpat ut. Vestibulum porta neque odio, sit amet tempus dui semper sed. Proin a justo lorem. Nunc molestie, turpis sed pulvinar eleifend, turpis felis ullamcorper risus, id semper mauris metus quis eros. Nulla egestas orci quis elit ornare, sit amet pellentesque purus rhoncus. Sed vestibulum tincidunt commodo. Suspendisse finibus luctus diam quis lobortis. Donec ac cursus felis, et fringilla tellus. Vivamus maximus nec dolor vel vulputate. Donec viverra dui ac aliquet auctor. Donec bibendum, lorem non ullamcorper convallis, orci est egestas tortor, in mattis purus massa eget nisl. Aenean semper quis diam sed laoreet. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+
+sudo rm -rf diagnostics,0
+sudo rm diagnostics.tar.xz,0
+sudo rm diagnostics.zip,0
+ls, 99
+ls /etc/systemd/system, 99

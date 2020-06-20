@@ -17,6 +17,9 @@ import multiprocessing
 # for ssh and sftp
 import paramiko
 
+#for progressbar
+from tqdm import tqdm
+
 # GLOBAL VARIABLES
 HOSTNAME = 'raspberrypi.local'
 USERNAME = 'pi'
@@ -104,7 +107,14 @@ def logincred(path):
 
     return phost, puser, ppass, port
 
-
+def tqdmWrapViewBar(*args, **kwargs):
+    pbar = tqdm(*args, **kwargs)  # make a progressbar
+    last = [0]  # last known iteration, start at 0
+    def viewBar(a, b):
+        pbar.total = int(b)
+        pbar.update(int(a - last[0]))  # update pbar with increment
+        last[0] = a  # update last known iteration
+    return viewBar, pbar  # return callback, tqdmInstance
 
 # PINGING
 def ping(host):
@@ -306,7 +316,11 @@ def main():
         src, dest = filesToSend("../input/Patch Automation - FTP.csv")
 
         for (file1, file2) in zip(src, dest):
-            ftp_client.put(file1, file2)
+            print("Transferring "+file1+"...")
+            cbk, pbar = tqdmWrapViewBar(unit='b', unit_scale=True)
+            ftp_client.put(file1,file2,callback=cbk)
+            pbar.close()
+            print("")
         
         print("Done")
 
