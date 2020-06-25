@@ -1,1 +1,3 @@
-../testfile.txt, testfile.txt
+testfile.txt, testfile.txt
+testfile.txt, testfile2.txt
+testfile.txt, testfile3.txt

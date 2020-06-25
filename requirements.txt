@@ -1,1 +1,3 @@
 paramiko
+tsplib95
+tqdm
